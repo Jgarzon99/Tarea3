@@ -1,0 +1,46 @@
+#batch_etl.py
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, to_timestamp, when, date_format, hour, minute, avg, sum as _sum, count
+from pyspark.sql.types import IntegerType, DoubleType
+
+spark = SparkSession.builder.appName("BatchTrafficETL").getOrCreate()
+
+input_csv = "traffic_data.csv"     # ajusta ruta si es necesario
+output_parquet = "data/processed/sensors_by_hour"  # output local
+
+# Leer con inferSchema o definir schema (aquí inferimos)
+df = spark.read.option("header", True).option("inferSchema", True).csv(input_csv)
+
+# Convertir timestamp
+df = df.withColumn("ts", to_timestamp(col("timestamp"), "yyyy-MM-dd HH:mm:ss"))
+
+# Filtrar registros invalidos
+df = df.filter(col("ts").isNotNull()) \
+       .withColumn("vehicle_count", col("vehicle_count").cast(IntegerType())) \
+       .withColumn("avg_speed", col("avg_speed").cast(DoubleType()))
+
+# Reemplazar o eliminar valores inválidos
+df = df.withColumn("vehicle_count", when(col("vehicle_count") < 0, None).otherwise(col("vehicle_count"))) \
+       .withColumn("avg_speed", when((col("avg_speed") < 0) | (col("avg_speed") > 200), None).otherwise(col("avg_speed")))
+
+df_clean = df.na.drop(subset=["vehicle_count","avg_speed"])
+
+# Feature engineering: hora y fecha
+df_clean = df_clean.withColumn("date", date_format(col("ts"), "yyyy-MM-dd")) \
+                   .withColumn("hour", hour(col("ts"))) \
+                   .withColumn("minute", minute(col("ts")))
+
+# EDA - estadísticas globales
+df_clean.select("vehicle_count","avg_speed").describe().show()
+
+# Agregación por city, road_type y hora
+agg_hour = df_clean.groupBy("city","road_type","date","hour") \
+                   .agg(_sum("vehicle_count").alias("vehicles_sum"),
+                        avg("avg_speed").alias("avg_speed_mean"),
+                        count("*").alias("records"))
+
+# Guardar resultados particionado por date
+agg_hour.write.mode("overwrite").partitionBy("date").parquet(output_parquet)
+
+print("Batch ETL finalizado. Resultados en:", output_parquet)
+spark.stop()
