@@ -44,7 +44,3 @@
    ```bash
    python dashboard.py
    ```
-
-## Notas
-- Ajusta rutas si corres desde otro directorio.
-- Aumenta la tasa en produce_sensors.py para simular mayor volumen.
