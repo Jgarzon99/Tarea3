@@ -1,0 +1,6 @@
+# uso_rdd.py (snippet)
+rdd = spark.read.option("header", True).csv("traffic_data.csv").rdd
+# cada fila como dict-like: acceder por índice/header -> mejor map a (city, vehicle_count)
+pairs = rdd.map(lambda row: (row['city'], int(row['vehicle_count']) if row['vehicle_count'] else 0))
+totals = pairs.reduceByKey(lambda a,b: a+b)
+print(totals.collect())
