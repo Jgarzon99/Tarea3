@@ -1,11 +1,11 @@
-# Proyecto Ejecutable — Spark + Kafka Traffic Sensors
+# Proyecto Ejecutable — Spark + Kafka Traffic
 
 ## Contenido
 - docker-compose.yml  -> Kafka + Zookeeper
 - requirements.txt
-- produce_sensors.py   -> Productor que lee traffic_data.csv y envía mensajes a Kafka
+- produce_sensors.py   -> lee traffic_data.csv y envía mensajes a Kafka
 - batch_etl.py        -> Job PySpark batch para limpieza y agregación
-- streaming_app.py    -> Spark Structured Streaming consumer (Kafka -> agregados por ventana)
+- streaming_app.py    -> Spark Structured Streaming consumer (Kafka )
 - dashboard.py        -> Dash app que muestra resultados (lectura Parquet)
 - traffic_data.csv    -> Dataset de ejemplo (100 registros)
 
